@@ -1,0 +1,18 @@
+println("Please enter the information for your tool search below")
+println("Tool Search: "  
+val name = readLine(s"${BOLD}Name: ${RESET}")
+
+CREATE TABLE Toolbox
+(
+Toolnumber int,
+BoltSizes varchar(255),
+Units varchar(255),
+Locationshelf varchar(255),
+);
+
+LOAD DATA LOCAL INFILE "C:\Users\kahas\OneDrive\Documents" INTO TABLE toolbox
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+(Toolnumber, BoltSizes, Units, Locationshelf)
+set date_made = STR_TO_DATE(@datevar,'%m/%d/%Y');

@@ -1,0 +1,15 @@
+﻿Tool#,ToolName,Bolt Sizes,"Units(English("")/Metric(mm))",LocationShelf
+101,Socket,0.5,English,1st
+102,Socket,0.4375,English,1st
+103,Socket,0.375,English,1st
+104,Socket,0.34375,English,1st
+105,Socket,0.3125,English,1st
+106,Socket,0.28125,English,1st
+107,Socket,0.25,English,1st
+201,Socket,13,Metric,2nd
+202,Socket,14,Metric,2nd
+203,Socket,15,Metric,2nd
+204,Socket,16,Metric,2nd
+205,Socket,17,Metric,2nd
+301,Wrench,0.5,English,3rd
+302,Wrench,0.25,English,3rd
