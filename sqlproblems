@@ -1,0 +1,524 @@
+1.
+SELECT action,
+SUM(CASE WHEN action = 'start' THEN 1 ELSE 0 END) AS 'start',
+SUM(CASE WHEN action = 'publish' THEN 1 ELSE 0 END) AS 'publish',
+SUM(CASE WHEN action = 'cancel' THEN 1 ELSE 0 END) AS 'cancel'
+FROM user;
+
+
+
+1.0*publish/starts AS publish_rate,
+1.0*cancel/starts AS cancel_rate
+FROM user
+
+**************************************************************************************
+2.
+SELECT user,
+SUM(amount)
+FROM (
+    SELECT sender AS user,
+    (0 - amount) as amount
+    FROM Transactions
+    UNION ALL (
+        SELECT receiver AS user,
+        amount
+        FROM Transactions
+    )
+) as U
+GROUP BY user;
+
+**************************************************************************************
+3.
+CREATE TABLE fruit(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+);
+
+INSERT INTO fruit(dates,items)
+VALUES (CAST('01-01-20' AS date),'apple'), 
+(CAST('01-01-20' AS date),'apple'), 
+(CAST('01-01-20' AS date),'pear'), 
+(CAST('01-01-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'orange');
+
+
+SELECT dates, items, count(*) AS item_count
+FROM fruit
+GROUP BY 1, 2
+ORDER BY 1;
+
+CREATE TABLE fruitcount(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+    itemcount int
+);
+
+INSERT INTO fruitcount(dates,items, itemcount)
+VALUES (CAST('01-01-20' AS date),'apple',2), 
+(CAST('01-01-20' AS date),'pear',2), 
+(CAST('01-02-20' AS date),'orange',1), 
+(CAST('01-02-20' AS date),'pear',3);
+
+SELECT *, rank() OVER (PARTITION by dates ORDER BY itemcount DESC) AS date_rank
+FROM fruitcount;
+
+CREATE TABLE fruitcountrank(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+    itemcount int,
+    datesrank int
+);
+
+INSERT INTO fruitcountrank(dates,items, itemcount, datesrank)
+VALUES (CAST('01-01-20' AS date),'apple',2,1), 
+(CAST('01-01-20' AS date),'pear',2,1), 
+(CAST('01-02-20' AS date),'orange',1,1), 
+(CAST('01-01-20' AS date),'pear',3,4);
+
+SELECT dates, items
+FROM fruitcountrank
+WHERE datesrank = 1;
+
+*************************************************************************************
+4.
+CREATE TABLE useractions(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255)
+);
+
+INSERT INTO useractions(userid,actions,actiondate)
+VALUES 
+(1, 'start', CAST('20-02-12' AS date)), 
+(1, 'cancel', CAST('20-02-13' AS date)), 
+(2, 'start', CAST('20-02-11' AS date)), 
+(2, 'publish', CAST('20-02-14' AS date)), 
+(3, 'start', CAST('20-02-15' AS date)), 
+(3, 'cancel', CAST('20-02-15' AS date)), 
+(4, 'start', CAST('20-02-18' AS date)), 
+(1, 'publish', CAST('20-02-19' AS date));
+
+SELECT *, row_number() OVER (PARTITION by userid ORDER BY actiondate DESC) AS daterank
+FROM useractions;
+
+CREATE TABLE useractionsrank(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+INSERT INTO useractionsrank(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'start', CAST('20-02-19' AS date),1), 
+(1, 'cancel', CAST('20-02-13' AS date),2), 
+(2, 'start', CAST('20-02-12' AS date),3), 
+(2, 'publish', CAST('20-02-14' AS date),1), 
+(3, 'start', CAST('20-02-11' AS date),2), 
+(3, 'cancel', CAST('20-02-15' AS date),1), 
+(4, 'start', CAST('20-02-15' AS date),2), 
+(1, 'publish', CAST('20-02-18' AS date),1);
+
+SELECT *
+FROM useractionsrank 
+WHERE daterank = 1;
+
+CREATE TABLE useractionsrank1(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+INSERT INTO useractionsrank1(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'start', CAST('20-02-19' AS date),1), 
+(2, 'publish', CAST('20-02-14' AS date),1), 
+(3, 'cancel', CAST('20-02-15' AS date),1), 
+(1, 'publish', CAST('20-02-18' AS date),1);
+
+SELECT *
+FROM useractionsrank 
+WHERE daterank = 2;
+
+CREATE TABLE useractionsrank2(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+
+INSERT INTO useractionsrank2(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'cancel', CAST('20-02-13' AS date),2), 
+(3, 'start', CAST('20-02-11' AS date),2), 
+(4, 'start', CAST('20-02-15' AS date),2);
+
+SELECT useractionsrank1.userid, 
+       useractionsrank1.actiondate - useractionsrank2.actiondate AS dayselapsed
+FROM useractionsrank1
+LEFT JOIN useractionsrank2
+ON useractionsrank1.userid = useractionsrank2.userid
+ORDER BY 1;
+
+*****************************************************************************************
+5.
+CREATE TABLE superusers(
+    userid int,
+    productid int NOT NULL,
+    transactiondate varchar(255)
+);
+
+INSERT INTO superusers(userid,productid,transactiondate)
+VALUES 
+(1, 101, CAST('20-02-12' AS date)), 
+(2, 105, CAST('20-02-13' AS date)), 
+(1, 111, CAST('20-02-14' AS date)), 
+(3, 121, CAST('20-02-15' AS date)), 
+(1, 101, CAST('20-02-16' AS date)), 
+(2, 105, CAST('20-02-17' AS date)), 
+(4, 101, CAST('20-02-16' AS date)), 
+(3, 105, CAST('20-02-15' AS date));
+
+SELECT *, row_number() OVER (PARTITION by userid ORDER BY transactiondate ASC) AS transactionnumber
+FROM superusers;
+
+CREATE TABLE superuserst1(
+    userid int,
+    productid int NOT NULL,
+    transactiondate varchar(255),
+    transactionnumber int
+);
+
+INSERT INTO superuserst1(userid,productid,transactiondate,transactionnumber)
+VALUES 
+(1, 101, CAST('20-02-12' AS date),1), 
+(1, 115, CAST('20-02-14' AS date),2), 
+(1, 101, CAST('20-02-16' AS date),3), 
+(2, 105, CAST('20-02-13' AS date),1), 
+(2, 105, CAST('20-02-17' AS date),2), 
+(3, 121, CAST('20-02-15' AS date),1), 
+(3, 105, CAST('20-02-15' AS date),2), 
+(4, 101, CAST('20-02-16' AS date),1);
+
+SELECT userid, transactiondate
+FROM superuserst1
+WHERE transactionnumber = 2; 
+
+CREATE TABLE superusersd1(
+    userid int,
+    transactiondate varchar(255)
+);
+
+INSERT INTO superusersd1(userid,transactiondate)
+VALUES 
+(1, CAST('20-02-14' AS date)), 
+(2, CAST('20-02-17' AS date)), 
+(3, CAST('20-02-15' AS date));
+
+SELECT DISTINCT userid
+FROM superusers;
+
+CREATE TABLE superusersdistinct(
+    userid int,
+PRIMARY KEY (Personid)
+);
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('1');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('2');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('3');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('4');
+
+SELECT superusersdistinct.userid, transactiondate AS superuserdate
+FROM superusersdistinct
+LEFT JOIN superusersd1
+ON superusersdistinct.userid = superusersd1.userid
+ORDER BY 2;
+
+***************************************************************************************************
+6.
+
+CREATE TABLE friends(
+    userid int,
+    friends int NOT NULL
+);
+
+INSERT INTO friends(userid,friends)
+VALUES 
+((1, 2), (1, 3), (1, 4), (2, 1), (3, 1), (3, 4), (4, 1), (4, 3));
+
+CREATE TABLE likes(
+    userid int,
+    pagelikes varchar(255) NOT NULL
+);
+
+INSERT INTO friends(userid,pagelikes)
+VALUES 
+((1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (3, 'B'), (3, 'C'), (4, 'B'));
+
+
+1.
+SELECT action,
+SUM(CASE WHEN action = 'start' THEN 1 ELSE 0 END) AS 'start',
+SUM(CASE WHEN action = 'publish' THEN 1 ELSE 0 END) AS 'publish',
+SUM(CASE WHEN action = 'cancel' THEN 1 ELSE 0 END) AS 'cancel'
+FROM user;
+
+
+
+1.0*publish/starts AS publish_rate,
+1.0*cancel/starts AS cancel_rate
+FROM user
+
+**************************************************************************************
+2.
+SELECT user,
+SUM(amount)
+FROM (
+    SELECT sender AS user,
+    (0 - amount) as amount
+    FROM Transactions
+    UNION ALL (
+        SELECT receiver AS user,
+        amount
+        FROM Transactions
+    )
+) as U
+GROUP BY user;
+
+**************************************************************************************
+3.
+CREATE TABLE fruit(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+);
+
+INSERT INTO fruit(dates,items)
+VALUES (CAST('01-01-20' AS date),'apple'), 
+(CAST('01-01-20' AS date),'apple'), 
+(CAST('01-01-20' AS date),'pear'), 
+(CAST('01-01-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'pear'), 
+(CAST('01-02-20' AS date),'orange');
+
+
+SELECT dates, items, count(*) AS item_count
+FROM fruit
+GROUP BY 1, 2
+ORDER BY 1;
+
+CREATE TABLE fruitcount(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+    itemcount int
+);
+
+INSERT INTO fruitcount(dates,items, itemcount)
+VALUES (CAST('01-01-20' AS date),'apple',2), 
+(CAST('01-01-20' AS date),'pear',2), 
+(CAST('01-02-20' AS date),'orange',1), 
+(CAST('01-02-20' AS date),'pear',3);
+
+SELECT *, rank() OVER (PARTITION by dates ORDER BY itemcount DESC) AS date_rank
+FROM fruitcount;
+
+CREATE TABLE fruitcountrank(
+    dates varchar(255),
+    items varchar(255) NOT NULL,
+    itemcount int,
+    datesrank int
+);
+
+INSERT INTO fruitcountrank(dates,items, itemcount, datesrank)
+VALUES (CAST('01-01-20' AS date),'apple',2,1), 
+(CAST('01-01-20' AS date),'pear',2,1), 
+(CAST('01-02-20' AS date),'orange',1,1), 
+(CAST('01-01-20' AS date),'pear',3,4);
+
+SELECT dates, items
+FROM fruitcountrank
+WHERE datesrank = 1;
+
+*************************************************************************************
+4.
+CREATE TABLE useractions(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255)
+);
+
+INSERT INTO useractions(userid,actions,actiondate)
+VALUES 
+(1, 'start', CAST('20-02-12' AS date)), 
+(1, 'cancel', CAST('20-02-13' AS date)), 
+(2, 'start', CAST('20-02-11' AS date)), 
+(2, 'publish', CAST('20-02-14' AS date)), 
+(3, 'start', CAST('20-02-15' AS date)), 
+(3, 'cancel', CAST('20-02-15' AS date)), 
+(4, 'start', CAST('20-02-18' AS date)), 
+(1, 'publish', CAST('20-02-19' AS date));
+
+SELECT *, row_number() OVER (PARTITION by userid ORDER BY actiondate DESC) AS daterank
+FROM useractions;
+
+CREATE TABLE useractionsrank(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+INSERT INTO useractionsrank(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'start', CAST('20-02-19' AS date),1), 
+(1, 'cancel', CAST('20-02-13' AS date),2), 
+(2, 'start', CAST('20-02-12' AS date),3), 
+(2, 'publish', CAST('20-02-14' AS date),1), 
+(3, 'start', CAST('20-02-11' AS date),2), 
+(3, 'cancel', CAST('20-02-15' AS date),1), 
+(4, 'start', CAST('20-02-15' AS date),2), 
+(1, 'publish', CAST('20-02-18' AS date),1);
+
+SELECT *
+FROM useractionsrank 
+WHERE daterank = 1;
+
+CREATE TABLE useractionsrank1(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+INSERT INTO useractionsrank1(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'start', CAST('20-02-19' AS date),1), 
+(2, 'publish', CAST('20-02-14' AS date),1), 
+(3, 'cancel', CAST('20-02-15' AS date),1), 
+(1, 'publish', CAST('20-02-18' AS date),1);
+
+SELECT *
+FROM useractionsrank 
+WHERE daterank = 2;
+
+CREATE TABLE useractionsrank2(
+    userid int,
+    actions varchar(255) NOT NULL,
+    actiondate varchar(255),
+    daterank int
+);
+
+
+INSERT INTO useractionsrank2(userid,actions,actiondate,daterank)
+VALUES 
+(1, 'cancel', CAST('20-02-13' AS date),2), 
+(3, 'start', CAST('20-02-11' AS date),2), 
+(4, 'start', CAST('20-02-15' AS date),2);
+
+SELECT useractionsrank1.userid, 
+       useractionsrank1.actiondate - useractionsrank2.actiondate AS dayselapsed
+FROM useractionsrank1
+LEFT JOIN useractionsrank2
+ON useractionsrank1.userid = useractionsrank2.userid
+ORDER BY 1;
+
+*****************************************************************************************
+5.
+CREATE TABLE superusers(
+    userid int,
+    productid int NOT NULL,
+    transactiondate varchar(255)
+);
+
+INSERT INTO superusers(userid,productid,transactiondate)
+VALUES 
+(1, 101, CAST('20-02-12' AS date)), 
+(2, 105, CAST('20-02-13' AS date)), 
+(1, 111, CAST('20-02-14' AS date)), 
+(3, 121, CAST('20-02-15' AS date)), 
+(1, 101, CAST('20-02-16' AS date)), 
+(2, 105, CAST('20-02-17' AS date)), 
+(4, 101, CAST('20-02-16' AS date)), 
+(3, 105, CAST('20-02-15' AS date));
+
+SELECT *, row_number() OVER (PARTITION by userid ORDER BY transactiondate ASC) AS transactionnumber
+FROM superusers;
+
+CREATE TABLE superuserst1(
+    userid int,
+    productid int NOT NULL,
+    transactiondate varchar(255),
+    transactionnumber int
+);
+
+INSERT INTO superuserst1(userid,productid,transactiondate,transactionnumber)
+VALUES 
+(1, 101, CAST('20-02-12' AS date),1), 
+(1, 115, CAST('20-02-14' AS date),2), 
+(1, 101, CAST('20-02-16' AS date),3), 
+(2, 105, CAST('20-02-13' AS date),1), 
+(2, 105, CAST('20-02-17' AS date),2), 
+(3, 121, CAST('20-02-15' AS date),1), 
+(3, 105, CAST('20-02-15' AS date),2), 
+(4, 101, CAST('20-02-16' AS date),1);
+
+SELECT userid, transactiondate
+FROM superuserst1
+WHERE transactionnumber = 2; 
+
+CREATE TABLE superusersd1(
+    userid int,
+    transactiondate varchar(255)
+);
+
+INSERT INTO superusersd1(userid,transactiondate)
+VALUES 
+(1, CAST('20-02-14' AS date)), 
+(2, CAST('20-02-17' AS date)), 
+(3, CAST('20-02-15' AS date));
+
+SELECT DISTINCT userid
+FROM superusers;
+
+CREATE TABLE superusersdistinct(
+    userid int,
+PRIMARY KEY (Personid)
+);
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('1');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('2');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('3');
+INSERT INTO `workbench`.`superusersdistinct` (`userid`) VALUES ('4');
+
+SELECT superusersdistinct.userid, transactiondate AS superuserdate
+FROM superusersdistinct
+LEFT JOIN superusersd1
+ON superusersdistinct.userid = superusersd1.userid
+ORDER BY 2;
+
+***************************************************************************************************
+6.
+
+CREATE TABLE friends(
+    userid int,
+    friends int NOT NULL
+);
+
+INSERT INTO friends(userid,friends)
+VALUES 
+((1, 2), (1, 3), (1, 4), (2, 1), (3, 1), (3, 4), (4, 1), (4, 3));
+
+CREATE TABLE likes(
+    userid int,
+    pagelikes varchar(255) NOT NULL
+);
+
+INSERT INTO friends(userid,pagelikes)
+VALUES 
+((1, 'A'), (1, 'B'), (1, 'C'), (2, 'A'), (3, 'B'), (3, 'C'), (4, 'B'));
+
+
